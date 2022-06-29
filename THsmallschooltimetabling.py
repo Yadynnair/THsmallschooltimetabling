@@ -2,7 +2,6 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import altair as alt
-# import xpress as xp
 import pulp as pu
 import xlsxwriter
 
@@ -38,7 +37,6 @@ st.markdown('''
 ''')
 
 st.header("อัพโหลดข้อมูล")
-# st.sidebar.header("อัพโหลดข้อมูล")
 
 st.write("หลังจากที่คุณครูได้ประชุมเพื่อตกลงภาระงานสอนแล้ว **โปรดคลิ๊กปุ่มด้านล่าง**เพื่อดาวน์โหลดแม่แบบสำหรับกรอกข้อมูล")
 
