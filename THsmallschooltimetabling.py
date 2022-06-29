@@ -219,7 +219,6 @@ if uploaded_file is not None:
         boyscout_day = st.selectbox('วันที่มีคาบลูกเสือคือวัน',('จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์'), index = 3, key = 'boyscoutday')     
 
         # PE day
-        # 1 or 2 PE day
         PE_day = st.multiselect('วันที่มีคาบวิชาพละคือวัน (เลือกได้มากกว่า 1 วัน)', ['จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์'],['อังคาร'], key='PEday')
         if PE_day == []:
             st.error("โปรดเลือกวันที่มีคาบวิชาพละ")
@@ -296,12 +295,7 @@ if uploaded_file is not None:
                 else:
                     Dummy.append(1/np.power(2,st.session_state.morningclass.index(c))*np.power(Penelty_weight,i))
             Penelty_distribution.append(Dummy)
-        
-        # Penelty_distribution = [[Reward,0.5*Reward,0.25*Reward,Penelty_weight**3,Penelty_weight**4],
-                                            # [0.5*Reward,0.25*Reward,0.125*Reward,0.5*Penelty_weight**3,0.5*Penelty_weight**4],
-                                            # [0.25*Reward,0.125*Reward,0.0625*Reward,0.25*Penelty_weight**3,0.25*Penelty_weight**4],
-                                            # [0.125*Reward,0.0625*Reward,0.03125*Reward,0.125*Penelty_weight**3,0.125*Penelty_weight**4]]
-
+            
         Morning_Class_Penelty = pu.lpSum(np.dot(Penelty_distribution[i],Constraint_var[i]) for i in range(len(st.session_state.morningclass)))
 
         # Afternoon Class Preference
@@ -322,12 +316,7 @@ if uploaded_file is not None:
                 else:
                     Dummy.insert(0,1/np.power(2,st.session_state.afternoonclass.index(c))*np.power(Penelty_weight,i))
             Penelty_distribution.append(Dummy)
-        
-        # Penelty_distribution = [[Penelty_weight**4,Penelty_weight**3,Penelty_weight**2,0.5*Reward,Reward],
-        #                         [0.5*Penelty_weight**4,0.5*Penelty_weight**3,0.5*Penelty_weight**2,0.25*Reward,0.5*Reward],
-        #                         [0.25*Penelty_weight**4,0.25*Penelty_weight**3,0.25*Penelty_weight**2,0.125*Reward,0.25*Reward],
-        #                         [0.125*Penelty_weight**4,0.125*Penelty_weight**3,0.125*Penelty_weight**2,0.0625*Reward,0.125*Reward]]
-
+            
         Afternoon_Class_Penelty = pu.lpSum(np.dot(Penelty_distribution[i],Constraint_var[i]) for i in range(len(st.session_state.afternoonclass)))
                 
         # Add Objective
@@ -393,7 +382,6 @@ if uploaded_file is not None:
         # '''Solve'''
 
         # Save and Solving
-        # p.writeLP('School Timetabling.lp')
 
         st.write('เมื่อเตรียมข้อมูลพร้อมแล้ว คุณครูสามารถกดปุ่มด้านล่างเพื่อเริ่มสร้างตารางสอนได้เลย :sunglasses:')
 
