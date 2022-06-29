@@ -59,7 +59,7 @@ TA = {}
 
 if uploaded_file is not None:
     # upload_status = True
-    df = pd.read_excel(uploaded_file,sheet_name=None)
+    df = pd.read_excel(uploaded_file,sheet_name=None, engine='openpyxl')
     
     school_name = uploaded_file.name.split('_')[0]
     semester = uploaded_file.name.split('_')[1]
