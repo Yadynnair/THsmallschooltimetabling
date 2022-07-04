@@ -1,5 +1,5 @@
 # THsmallschooltimetabling
-Timetabling for small school in Thailand
+Timetabling for small and middle school in Thailand
 
 There are more than 10,000 small school in Thailand and some of them do not have timetabling software.
 
