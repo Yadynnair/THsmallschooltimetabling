@@ -427,7 +427,7 @@ if uploaded_file is not None:
 
             st.write('เมื่อเตรียมข้อมูลพร้อมแล้ว คุณครูสามารถกดปุ่มด้านล่างเพื่อเริ่มสร้างตารางสอนได้เลย :sunglasses:')
 
-            solve_button = st.button('เริ่มการสร้างตารางสอน')
+            solve_button = st.button('เริ่มการสร้างตารางสอน',key='solve')
 
             if solve_button:
                 with st.spinner('...โปรดรอ...'):
@@ -460,7 +460,13 @@ if uploaded_file is not None:
                                                 df_teacher[t].at[i,colums_name[j]] = a
                            
                             df_teacher[t].insert(st.session_state.morningsessionsaday,'พักรับประทานอาหารกลางวัน',['','','','','']) # Insert Lunch Time
-                            
+                        
+                            # Change 'พลศึกษา' to 'สุขศึกษา/พลศึกษา' if they share session
+                            for g in Grades:
+                                Dummy = [c[2] for c in student_plan[g]]
+                                if 'สุขศึกษา' not in Dummy:
+                                    df_teacher[t].replace('พลศึกษา'+' '+g,'สุขศึกษา/พลศึกษา'+' '+g, inplace = True)
+
                         # Student Schedule Dataframe
                         df_student = { g : pd.DataFrame(index=Days, columns= colums_name) for g in Grades}   
 
@@ -480,7 +486,7 @@ if uploaded_file is not None:
 
                             df_student[g].insert(st.session_state.morningsessionsaday,'พักรับประทานอาหารกลางวัน',['','','','','']) # Insert Lunch Time
 
-                        for g in Grades:
+                            # Change 'พลศึกษา' to 'สุขศึกษา/พลศึกษา' if they share session
                             Dummy = [c[2] for c in student_plan[g]]
                             if 'สุขศึกษา' not in Dummy:
                                 df_student[g].replace('พลศึกษา','สุขศึกษา/พลศึกษา',inplace = True)
@@ -511,4 +517,5 @@ if uploaded_file is not None:
                                 label = '📥 ดาวน์โหลดตารางสอน 📥', 
                                 data = my_file, 
                                 file_name = 'ตารางสอน{} เทอม {} ปีการศึกษา {}'.format(school_name,semester,year), 
-                                mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                                mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                key='download')
