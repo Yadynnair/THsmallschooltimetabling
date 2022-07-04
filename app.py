@@ -495,7 +495,7 @@ if uploaded_file is not None:
 
                     # '''Create a Pandas Excel writer using XlsxWriter as the engine.'''
                         
-                        writer = pd.ExcelWriter('ตารางสอน{} เทอม {} ปีการศึกษา {}'.format(school_name,semester,year), engine='xlsxwriter')
+                        writer = pd.ExcelWriter('ตารางสอน{} เทอม {} ปีการศึกษา {}.xlsx'.format(school_name,semester,year), engine='xlsxwriter')
 
                         # Write each dataframe to a different worksheet.
                         for t in Teacher:
@@ -506,7 +506,7 @@ if uploaded_file is not None:
                         # Close the Pandas Excel writer and output the Excel file.
                         writer.save()
 
-                        with open('ตารางสอน{} เทอม {} ปีการศึกษา {}'.format(school_name,semester,year), 'rb') as my_file:
+                        with open('ตารางสอน{} เทอม {} ปีการศึกษา {}.xlsx'.format(school_name,semester,year), 'rb') as my_file:
                             st.download_button(
                                 label = '📥 ดาวน์โหลดตารางสอน 📥', 
                                 data = my_file, 
