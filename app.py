@@ -266,8 +266,8 @@ if uploaded_file is not None:
         #Morning and Afternoon Class preference
 
         with st.expander('วิชาที่อยากให้สอนช่วงเช้าและช่วงบ่าย'):
-            morning_class = st.multiselect('วิชาที่อยากให้เรียนตอนเช้า (เรียงตามความสำคัญ)', pd.Series(Subjects),['คณิตศาสตร์','ภาษาไทย','ภาษาอังกฤษ'], key='morningclass')
-            afternoon_class = st.multiselect('วิชาที่อยากให้เรียนตอนบ่าย (เรียงตามความสำคัญ)', pd.Series(Subjects),['พลศึกษา','ศิลปะ','การงานอาชีพ','สุขศึกษา'], key='afternoonclass')
+            morning_class = st.multiselect('วิชาที่อยากให้เรียนตอนเช้า (เรียงตามความสำคัญ)', pd.Series(Subjects),[], key='morningclass')
+            afternoon_class = st.multiselect('วิชาที่อยากให้เรียนตอนบ่าย (เรียงตามความสำคัญ)', pd.Series(Subjects),[], key='afternoonclass')
         
         # 2 consecutive classes:
         # with st.expander('วิชาที่อยากให้สอนติดกัน 2 คาบ'):
