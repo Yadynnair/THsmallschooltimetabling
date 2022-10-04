@@ -1,3 +1,4 @@
+from git import safe_decode
 import streamlit as st
 from streamlit_tags import st_tags
 import numpy as np
@@ -233,8 +234,8 @@ if uploaded_file is not None:
         # number of session perday
         num_sessions_per_day = st.number_input('จำนวนคาบต่อวัน',min_value = 4, max_value = 10, value = 6, key='sessionsaday')
         morning_sessions_per_day = st.number_input('จำนวนคาบตอนเช้า',min_value = 2, max_value = 5, value = int(np.ceil(st.session_state.sessionsaday/2)), key='morningsessionsaday')
-
-        Timeslot = [(i,j) for i in Days for j in range(st.session_state.sessionsaday)]
+        Periods = range(st.session_state.sessionsaday)
+        Timeslot = [(i,j) for i in Days for j in Periods]
 
         PE_day = st.multiselect('วันที่มีคาบวิชาพละคือวัน (เลือกได้มากกว่า 1 วัน) ', Days,['อังคาร','พฤหัสบดี'], key='PEday')
         if PE_day == []:
@@ -269,9 +270,15 @@ if uploaded_file is not None:
             morning_class = st.multiselect('วิชาที่อยากให้เรียนตอนเช้า (เรียงตามความสำคัญ)', pd.Series(Subjects),[], key='morningclass')
             afternoon_class = st.multiselect('วิชาที่อยากให้เรียนตอนบ่าย (เรียงตามความสำคัญ)', pd.Series(Subjects),[], key='afternoonclass')
         
-        # 2 consecutive classes:
-        # with st.expander('วิชาที่อยากให้สอนติดกัน 2 คาบ'):
-        #     consecutive_classes = st.multiselect('วิชาที่อยากให้สอนติดกัน 2 คาบ', pd.Series(Subjects),[], key='consecutiveclass')
+        # chosse subject need to have 2 consecutive timeslots:
+        with st.expander('วิชาที่อยากให้มีคาบสอนติดกัน 2 คาบ'):
+            consecutive_classes = st.multiselect('โปรดเลือกวิชาที่อยากให้มีคาบสอนติดกัน เช่น วิชาที่ต้องมีการทดลอง', pd.Series(Subjects),[], key='consecutiveclass')
+            cons_class_management = {s:['ทุกคน','ทุกชั้นเรียน'] for s in st.session_state.consecutiveclass}
+            for s in st.session_state.consecutiveclass:
+                options1 = Teacher+['ทุกคน']
+                options2 = Grades+['ทุกชั้นเรียน']
+                cons_class_management[s][0] = st.multiselect('จะจัดให้วิชา{}มีการสอนติดกันสำหรับครู...'.format(s), pd.Series(options1),['ทุกคน'], key='consteacherfor{}'.format(s))
+                cons_class_management[s][1] = st.multiselect('จะจัดให้วิชา{}มีการสอนติดกันสำหรับนักเรียนชั้น...'.format(s), pd.Series(options2),['ทุกชั้นเรียน'], key='consgradfor{}'.format(s))
 
         # people need to cover the class ex. ill, pragnancy, or retire
         # 2 modes: cover by one or more people/ homeroom teacher takecare of students
@@ -319,14 +326,14 @@ if uploaded_file is not None:
             Constraint_var = []
             for cc in st.session_state.morningclass:
                 Dummy = []
-                for j in range(st.session_state.sessionsaday):
+                for j in Periods:
                     Dummy.append(pu.lpSum(var[c][(i,j)] for i in Days for c in subject_plan[cc]))
                 Constraint_var.append(Dummy)
 
             Penelty_distribution = []
             for c in st.session_state.morningclass:
                 Dummy = []
-                for i in range(st.session_state.sessionsaday):
+                for i in Periods:
                     if i+1 <= st.session_state.morningsessionsaday:
                         Dummy.append(1/np.power(2,i+st.session_state.morningclass.index(c))*Reward)
                     else:
@@ -345,14 +352,14 @@ if uploaded_file is not None:
             Constraint_var = []
             for cc in st.session_state.afternoonclass:
                 Dummy = []
-                for j in range(st.session_state.sessionsaday):
+                for j in Periods:
                     Dummy.append(pu.lpSum(var[c][(i,j)] for i in Days for c in subject_plan[cc]))
                 Constraint_var.append(Dummy)
 
             Penelty_distribution = []
             for c in st.session_state.afternoonclass:
                 Dummy = []
-                for i in range(st.session_state.sessionsaday):
+                for i in Periods:
                     if i+1 <= st.session_state.sessionsaday-st.session_state.morningsessionsaday:
                         Dummy.insert(0,1/np.power(2,i+st.session_state.afternoonclass.index(c))*Reward)
                     else:
@@ -364,9 +371,7 @@ if uploaded_file is not None:
             #                         [0.25*Penelty_weight**4,0.25*Penelty_weight**3,0.25*Penelty_weight**2,0.125*Reward,0.25*Reward],
             #                         [0.125*Penelty_weight**4,0.125*Penelty_weight**3,0.125*Penelty_weight**2,0.0625*Reward,0.125*Reward]]
 
-            Afternoon_Class_Penelty = pu.lpSum(np.dot(Penelty_distribution[i],Constraint_var[i]) for i in range(len(st.session_state.afternoonclass)))
-            
-            # consecutive_classes_penelty = 
+            Afternoon_Class_Penelty = pu.lpSum(np.dot(Penelty_distribution[i],Constraint_var[i]) for i in range(len(st.session_state.afternoonclass))) 
 
             # Add Objective
             p += (Morning_Class_Penelty+Afternoon_Class_Penelty,"Sum_of_Total_Penalty",)
@@ -407,27 +412,82 @@ if uploaded_file is not None:
                     p += (var[c][Timeslot[Days.index(st.session_state[dummykeyday])*st.session_state.sessionsaday+st.session_state[dummykeyperiod]-1]] == 0)
 
             # Not Learn the same subject on the same day_Hard Constraint Version
-            for s in Subjects:
+            # Omit class that select to teach consecutive
+            Notconsclasses = [s for s in Subjects if s not in st.session_state.consecutiveclass]
+            for s in Notconsclasses:
                 for g in Grades:
                     sg_class = []
                     for c in Classes:
                         if s == c[2] and g ==c[1]:
                             sg_class.append(c)
                     for i in Days:
-                        p += (pu.lpSum(var[c][(i,j)] for c in sg_class for j in range(st.session_state.sessionsaday)) <= 1)
+                        p += (pu.lpSum(var[c][(i,j)] for c in sg_class for j in Periods) <= 1)
 
             # Clases distribute close to average everyday for teacher
             sensitivity = 1
             for t in Teacher:
                 t_average_per_day = len(teaching_workload[t])/len(Days)
                 for i in Days:
-                    p += (pu.lpSum(var[c][(i,j)] for c in teaching_workload[t] for j in range(st.session_state.sessionsaday)) <= t_average_per_day + sensitivity)
+                    p += (pu.lpSum(var[c][(i,j)] for c in teaching_workload[t] for j in Periods) <= t_average_per_day + sensitivity)
+            
+            # Subject need 2 consecutive timeslots and not learn more than 2 timeslot on the same day
+            for s in st.session_state.consecutiveclass:
+                if 'ทุกคน' in cons_class_management[s][0]:
+                    for T in Teacher:
+                        if 'ทุกชั้นเรียน' in cons_class_management[s][1]:
+                            for g in Grades:
+                                for k in range(TA[T][g][Subjects.index(s)]):
+                                    if k%2 == 0 and k+1 in range(TA[T][g][Subjects.index(s)]):
+                                        for d in Days:
+                                            p += (pu.lpSum(var[(T,g,s,k)][(d,t)] for t in Periods) <= 2)
+                                            for t in Periods:
+                                                if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
+                                                    p += (var[(T,g,s,k)][(d,t)] == 0)
+                                                else:
+                                                    p += (var[(T,g,s,k)][(d,t)] == var[(T,g,s,k+1)][(d,t+1)])                            
+                        else:
+                            for g in cons_class_management[s][1]:
+                                for k in range(TA[T][g][Subjects.index(s)]):
+                                    if k%2 == 0 and k+1 in range(TA[T][g][Subjects.index(s)]):
+                                        for d in Days:
+                                            p += (pu.lpSum(var[(T,g,s,k)][(d,t)] for t in Periods) <= 2)
+                                            for t in Periods:
+                                                if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
+                                                    p += (var[(T,g,s,k)][(d,t)] == 0)
+                                                else:
+                                                    p += (var[(T,g,s,k)][(d,t)] == var[(T,g,s,k+1)][(d,t+1)])
+                else:
+                    for T in cons_class_management[s][0]:
+                        if 'ทุกชั้นเรียน' in cons_class_management[s][1]:
+                            for g in Grades:
+                                for k in range(TA[T][g][Subjects.index(s)]):
+                                    if k%2 == 0 and k+1 in range(TA[T][g][Subjects.index(s)]):
+                                        for d in Days:
+                                            p += (pu.lpSum(var[(T,g,s,k)][(d,t)] for t in Periods) <= 2)
+                                            for t in Periods:
+                                                if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
+                                                    p += (var[(T,g,s,k)][(d,t)] == 0)
+                                                else:
+                                                    p += (var[(T,g,s,k)][(d,t)] == var[(T,g,s,k+1)][(d,t+1)])                            
+                        else:
+                            for g in cons_class_management[s][1]:
+                                for k in range(TA[T][g][Subjects.index(s)]):
+                                    if k%2 == 0 and k+1 in range(TA[T][g][Subjects.index(s)]):
+                                        for d in Days:
+                                            p += (pu.lpSum(var[(T,g,s,k)][(d,t)] for t in Periods) <= 2)
+                                            for t in Periods:
+                                                if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
+                                                    p += (var[(T,g,s,k)][(d,t)] == 0)
+                                                else:
+                                                    p += (var[(T,g,s,k)][(d,t)] == var[(T,g,s,k+1)][(d,t+1)])
+                    
+                    
 
             # PE Day
-            PE_Not_Teach_Day =[d for d in Days if d not in st.session_state.PEday]
+            PE_Not_Teach_Day = [d for d in Days if d not in st.session_state.PEday]
 
             for i in PE_Not_Teach_Day:
-                p += (pu.lpSum(var[c][(i,j)] for c in subject_plan['พลศึกษา'] for j in range(st.session_state.sessionsaday)) == 0)
+                p += (pu.lpSum(var[c][(i,j)] for c in subject_plan['พลศึกษา'] for j in Periods) == 0)
 
             # '''Solve'''
 
@@ -445,14 +505,14 @@ if uploaded_file is not None:
                     if pu.LpStatus[p.status] == 'Infeasible':
                         st.error("โปรแกรมไม่สามารถหาคำตอบที่สอดคล้องกับทุกเงื่อนไขได้ โปรดตรวจสอบข้อมูลที่ให้ หรืออาจปรับเงื่อนไขแผนสำรองโดยลดจำนวนครูที่เสี่ยงลาหรือเพิ่มจำนวนครูที่จะช่วยดูแลห้องแทน")
                     else:
-                        colums_name = ['คาบที่ {}'.format(i+1) for i in range(st.session_state.sessionsaday)]
+                        colums_name = ['คาบที่ {}'.format(i+1) for i in Periods]
 
                         # Teacher Schedule Dataframe
                         df_teacher = { t : pd.DataFrame(index=Days, columns= colums_name) for t in Teacher}   
                         
                         for t in Teacher:
                             for i in Days:
-                                for j in range(st.session_state.sessionsaday):
+                                for j in Periods:
                                     Dummy = [round(var[c][(i,j)].varValue) for c in teaching_workload[t]] #somehow, some solution is not exactly one.
                                     if sum(Dummy) == 0:
                                         df_teacher[t].at[i,colums_name[j]] = ''
@@ -481,7 +541,7 @@ if uploaded_file is not None:
 
                         for g in Grades:
                             for i in Days:
-                                for j in range(st.session_state.sessionsaday):
+                                for j in Periods:
                                     Dummy = [round(var[c][(i,j)].varValue) for c in student_plan[g]] #somehow, some solution is not exactly one.
                                     if sum(Dummy) == 0:
                                         df_student[g].at[i,colums_name[j]] = ''
