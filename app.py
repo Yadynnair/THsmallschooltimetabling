@@ -432,55 +432,50 @@ if uploaded_file is not None:
             
             # Subject need 2 consecutive timeslots and not learn more than 2 timeslot on the same day
             for s in st.session_state.consecutiveclass:
-                if 'ทุกคน' in cons_class_management[s][0]:
-                    for T in Teacher:
+                for c in subject_plan[s]:
+                    if 'ทุกคน' in cons_class_management[s][0]:                    
                         if 'ทุกชั้นเรียน' in cons_class_management[s][1]:
-                            for g in Grades:
-                                for k in range(TA[T][g][Subjects.index(s)]):
-                                    if k%2 == 0 and k+1 in range(TA[T][g][Subjects.index(s)]):
-                                        for d in Days:
-                                            p += (pu.lpSum(var[(T,g,s,k)][(d,t)] for t in Periods) <= 2)
-                                            for t in Periods:
-                                                if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
-                                                    p += (var[(T,g,s,k)][(d,t)] == 0)
-                                                else:
-                                                    p += (var[(T,g,s,k)][(d,t)] == var[(T,g,s,k+1)][(d,t+1)])                            
+                            if c[3]%2 == 0 and (c[0],c[1],c[2],c[3]+1) in subject_plan[s]:
+                                for d in Days:
+                                    p += (pu.lpSum(var[c][(d,t)] for t in Periods) <= 2)
+                                    for t in Periods:
+                                        if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
+                                            p += (var[c][(d,t)] == 0)
+                                        else:
+                                            p += (var[c][(d,t)] == var[(c[0],c[1],c[2],c[3]+1)][(d,t+1)])                            
                         else:
                             for g in cons_class_management[s][1]:
-                                for k in range(TA[T][g][Subjects.index(s)]):
-                                    if k%2 == 0 and k+1 in range(TA[T][g][Subjects.index(s)]):
+                                if c[1] == g and c[3]%2 == 0 and (c[0],c[1],c[2],c[3]+1) in subject_plan[s]:                                   
+                                    for d in Days:
+                                        p += (pu.lpSum(var[c][(d,t)] for t in Periods) <= 2)
+                                        for t in Periods:
+                                            if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
+                                                p += (var[c][(d,t)] == 0)
+                                            else:
+                                                p += (var[c][(d,t)] == var[(c[0],c[1],c[2],c[3]+1)][(d,t+1)])
+                    else:
+                        for T in cons_class_management[s][0]:
+                            if c[0] == T:
+                                if 'ทุกชั้นเรียน' in cons_class_management[s][1]:
+                                    if c[3]%2 == 0 and (c[0],c[1],c[2],c[3]+1) in subject_plan[s]:
                                         for d in Days:
-                                            p += (pu.lpSum(var[(T,g,s,k)][(d,t)] for t in Periods) <= 2)
+                                            p += (pu.lpSum(var[c][(d,t)] for t in Periods) <= 2)
                                             for t in Periods:
                                                 if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
-                                                    p += (var[(T,g,s,k)][(d,t)] == 0)
+                                                    p += (var[c][(d,t)] == 0)
                                                 else:
-                                                    p += (var[(T,g,s,k)][(d,t)] == var[(T,g,s,k+1)][(d,t+1)])
-                else:
-                    for T in cons_class_management[s][0]:
-                        if 'ทุกชั้นเรียน' in cons_class_management[s][1]:
-                            for g in Grades:
-                                for k in range(TA[T][g][Subjects.index(s)]):
-                                    if k%2 == 0 and k+1 in range(TA[T][g][Subjects.index(s)]):
-                                        for d in Days:
-                                            p += (pu.lpSum(var[(T,g,s,k)][(d,t)] for t in Periods) <= 2)
-                                            for t in Periods:
-                                                if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
-                                                    p += (var[(T,g,s,k)][(d,t)] == 0)
-                                                else:
-                                                    p += (var[(T,g,s,k)][(d,t)] == var[(T,g,s,k+1)][(d,t+1)])                            
-                        else:
-                            for g in cons_class_management[s][1]:
-                                for k in range(TA[T][g][Subjects.index(s)]):
-                                    if k%2 == 0 and k+1 in range(TA[T][g][Subjects.index(s)]):
-                                        for d in Days:
-                                            p += (pu.lpSum(var[(T,g,s,k)][(d,t)] for t in Periods) <= 2)
-                                            for t in Periods:
-                                                if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
-                                                    p += (var[(T,g,s,k)][(d,t)] == 0)
-                                                else:
-                                                    p += (var[(T,g,s,k)][(d,t)] == var[(T,g,s,k+1)][(d,t+1)])
-                    
+                                                    p += (var[c][(d,t)] == var[(c[0],c[1],c[2],c[3]+1)][(d,t+1)])                            
+                                else:
+                                    for g in cons_class_management[s][1]:
+                                        if c[1] == g and c[3]%2 == 0 and (c[0],c[1],c[2],c[3]+1) in subject_plan[s]:                                   
+                                            for d in Days:
+                                                p += (pu.lpSum(var[c][(d,t)] for t in Periods) <= 2)
+                                                for t in Periods:
+                                                    if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
+                                                        p += (var[c][(d,t)] == 0)
+                                                    else:
+                                                        p += (var[c][(d,t)] == var[(c[0],c[1],c[2],c[3]+1)][(d,t+1)])
+                        
                     
 
             # PE Day
