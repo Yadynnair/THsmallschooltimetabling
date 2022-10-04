@@ -580,7 +580,8 @@ if uploaded_file is not None:
                         for t in Teacher:
                             df_teacher[t].to_excel(writer, sheet_name='ครู{}'.format(t))
                         for g in Grades:
-                            df_student[g].to_excel(writer, sheet_name='นักเรียนชั้น {}'.format(g))
+                            dummy = g.replace("/","_")
+                            df_student[g].to_excel(writer, sheet_name='นักเรียนชั้น {}'.format(dummy))
 
                         # Close the Pandas Excel writer and output the Excel file.
                         writer.save()
