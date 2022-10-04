@@ -250,12 +250,12 @@ if uploaded_file is not None:
                 if a == 'ลูกเสือ':
                     self_manage_vars[(a,0)] = st.selectbox('วันที่มีคาบ{} คือวัน'.format(a),pd.Series([d for d in Days if d not in st.session_state.PEday]), index = 0, key = '{}day'.format(a))
                     self_manage_vars[(a,1)] = st.selectbox('คาบที่...'.format(a), range(1,st.session_state.sessionsaday+1), index = st.session_state.sessionsaday-1, key = '{}period'.format(a))
-                # elif a in list:
-                #     self_manage_vars[(a,0)] = st.selectbox('วันที่มีคาบ{} คือวัน'.format(a),('จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์'), index =list.index(a),  key = '{}day'.format(a))
-                #     self_manage_vars[(a,1)] = st.selectbox('คาบที่...'.format(a), range(1,st.session_state.sessionsaday+1), index = st.session_state.sessionsaday-1,key = '{}period'.format(a))
+                elif a == 'แนะแนว':
+                    self_manage_vars[(a,0)] = st.selectbox('วันที่มีคาบ{} คือวัน'.format(a),('จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์'), index = 0,  key = '{}day'.format(a))
+                    self_manage_vars[(a,1)] = st.selectbox('คาบที่...'.format(a), range(1,st.session_state.sessionsaday+1), index = 0, key = '{}period'.format(a))
                 else:
-                    self_manage_vars[(a,0)] = st.selectbox('วันที่มีคาบ{} คือวัน'.format(a),('จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์'), key = '{}day'.format(a))
-                    self_manage_vars[(a,1)] = st.selectbox('คาบที่...'.format(a), range(1,st.session_state.sessionsaday+1),key = '{}period'.format(a))
+                    self_manage_vars[(a,0)] = st.selectbox('วันที่มีคาบ{} คือวัน'.format(a),('จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์'), index = 0, key = '{}day'.format(a))
+                    self_manage_vars[(a,1)] = st.selectbox('คาบที่...'.format(a), range(1,st.session_state.sessionsaday+1), index = st.session_state.sessionsaday-1, key = '{}period'.format(a))
         
         for i in range(len(self_manage)):
             for j in range(i):
@@ -383,16 +383,16 @@ if uploaded_file is not None:
                 p += (pu.lpSum(var[c][s] for s in Timeslot) == 1)
 
             # Teachers teach one class at a time and Plan B ครูประจำชั้น สำหรับครูเสี่ยงลาบ่อย        
-            for t in Teacher:
+            for t in Teacher:  
                 t_class = []
-                for c in Classes:
+                for c in Classes: 
                     if t == c[0] or (TA[t]['ประจำชั้น'] == c[1] and c[0] in teacher_planB_homeroom):
                         t_class.append(c)
                 for s in Timeslot:
                     p += (pu.lpSum(var[c][s] for c in t_class) <= 1)
                 if t in teacher_planB_group:
                     care_class =[]
-                    for c in Classes:
+                    for c in Classes:  
                         if c[0] in risk_management[t]:
                             care_class.append(c)
                     for s in Timeslot:
@@ -474,15 +474,24 @@ if uploaded_file is not None:
                                                     if t+1 == morning_sessions_per_day or t+1 == num_sessions_per_day:
                                                         p += (var[c][(d,t)] == 0)
                                                     else:
-                                                        p += (var[c][(d,t)] == var[(c[0],c[1],c[2],c[3]+1)][(d,t+1)])
-                        
-                    
+                                                        p += (var[c][(d,t)] == var[(c[0],c[1],c[2],c[3]+1)][(d,t+1)])  
 
             # PE Day
             PE_Not_Teach_Day = [d for d in Days if d not in st.session_state.PEday]
 
             for i in PE_Not_Teach_Day:
                 p += (pu.lpSum(var[c][(i,j)] for c in subject_plan['พลศึกษา'] for j in Periods) == 0)
+
+            # Diversity (for each grade each periods, not learn the sames subject more than 3 times)
+            for g in Grades:
+                for s in Subjects:
+                    Dummy = []
+                    for c in Classes:
+                        if c[1] == g and c[2] == s:   
+                            Dummy.append(c)                         
+                    for t in Periods: 
+                        p += (pu.lpSum(var[c][(d,t)] for d in Days for c in Dummy) <= 3)
+
 
             # '''Solve'''
 
@@ -494,8 +503,8 @@ if uploaded_file is not None:
             solve_button = st.button('เริ่มการสร้างตารางสอน',key='solve')
 
             if solve_button:
-                with st.spinner('...โปรดรอ...'):
-                    p.solve()
+                with st.spinner('โปรแกรมกำลังประมวลผลโดยจะใช้เวลาไม่เกิน 1 นาที...โปรดรอ...'):
+                    p.solve(pu.PULP_CBC_CMD(maxSeconds=60, msg=1, fracGap=0))
 
                     if pu.LpStatus[p.status] == 'Infeasible':
                         st.error("โปรแกรมไม่สามารถหาคำตอบที่สอดคล้องกับทุกเงื่อนไขได้ โปรดตรวจสอบข้อมูลที่ให้ หรืออาจปรับเงื่อนไขแผนสำรองโดยลดจำนวนครูที่เสี่ยงลาหรือเพิ่มจำนวนครูที่จะช่วยดูแลห้องแทน")
